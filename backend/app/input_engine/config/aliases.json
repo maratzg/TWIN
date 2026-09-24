@@ -1,0 +1,19 @@
+{
+  "shipment_reference": ["SHIPMENT_ID", "SHIPMENT_REFERENCE", "JOB_NO", "JOB_NUMBER"],
+  "booking_reference": ["BOOKING_REFERENCE", "BOOKING_REF", "BOOKING_NO"],
+  "customer_name": ["CUST", "CUSTOMER", "CUSTOMER_NAME", "CLIENT", "CLIENT_NAME"],
+  "bill_of_lading_number": ["BL", "B/L", "BL_NO", "BL_NUMBER", "BILL_OF_LADING", "BILL_OF_LADING_NUMBER"],
+  "container_number": ["CONT", "CONTAINER", "CNTR", "CNTR_NO", "CONTAINER_NO", "CONTAINER_NUMBER"],
+  "container_type": ["CONTAINER_TYPE", "CNTR_TYPE", "SIZE_TYPE"],
+  "vessel_name": ["VSL", "VESSEL", "VESSEL_NAME", "SHIP"],
+  "voyage_number": ["VOY", "VOYAGE", "VOYAGE_NUMBER", "TRIP"],
+  "port_of_loading": ["POL", "ORIGIN", "ORIGIN_PORT", "PORT_OF_LOADING"],
+  "port_of_discharge": ["POD", "DESTINATION", "DESTINATION_PORT", "PORT_OF_DISCHARGE"],
+  "etd": ["ETD", "DEPARTURE", "DEPARTURE_DATE", "ESTIMATED_DEPARTURE"],
+  "eta": ["ETA", "ARRIVAL", "ARRIVAL_DATE", "ESTIMATED_ARRIVAL"],
+  "gross_weight": ["GWT", "GW", "GROSS_WEIGHT", "WEIGHT", "WEIGHT_KG"],
+  "teu": ["TEU", "TEUS"],
+  "revenue": ["REV", "REVENUE", "SALES", "AMOUNT"],
+  "currency": ["CURRENCY", "CUR", "CCY"],
+  "status": ["STATUS", "SHIPMENT_STATUS"]
+}

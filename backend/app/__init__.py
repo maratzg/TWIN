@@ -1,0 +1,2 @@
+"""Logistics Intelligence Platform backend."""
+
