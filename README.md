@@ -1,10 +1,16 @@
 # Logistics Intelligence Platform
 
-Milestone 2 turns the import foundation into an exception-focused review workbench for converting inconsistent logistics spreadsheets into trusted, tenant-scoped canonical records.
+Milestone 4A turns the canonical logistics graph into deterministic, auditable management analytics while preserving spreadsheet, invoice, and Bill of Lading ingestion.
 
 The implemented workflow is:
 
-`Excel / CSV → automatic mapping → validation → exception review → correction → revalidation → selective commit → canonical persistence`
+`Excel / CSV → mapping → validation → row review → canonical shipments`
+
+`Invoice PDF → text extraction → classification → field candidates → validation → document review → approval → canonical invoice`
+
+`Bill of Lading PDF → classification → repeating container candidates → matching/validation → review → approval → connected canonical logistics graph`
+
+`Canonical records → governed metric engine → comparisons/baselines → structured insights → drill-down/provenance`
 
 The product is a modular monolith: FastAPI and SQLAlchemy provide the backend, PostgreSQL is the target database, and Next.js provides the browser application. It has no cloud-provider dependency and can run on a laptop, private server, or cloud infrastructure.
 
@@ -29,6 +35,27 @@ The product is a modular monolith: FastAPI and SQLAlchemy provide the backend, P
 - canonical shipments, customers, containers, bills of lading, ports, vessels, and voyages
 - shipment search and pagination
 - tenant-scoped imports, rows, issues, mappings, corrections, commits, and shipment repositories
+- PDF upload validation, checksum-backed local source retention, safe retrieval, and explicit failure states
+- embedded-text extraction with page/block evidence plus an OCR provider boundary for scanned documents
+- deterministic `INVOICE`/`UNKNOWN` classification with confidence and supporting signals
+- invoice candidate extraction for identity, parties, dates, amounts, VAT, and operational/payment references
+- European date/amount normalization using `Decimal` semantics and country prefixes retained on VAT identifiers
+- conservative party/reference matching, duplicate detection, and tolerance-aware arithmetic validation
+- split PDF/evidence review with corrections, revalidation, approval, idempotent commit, and source lineage
+- paginated Documents and canonical Invoices modules plus document-health metrics in Data Quality
+- deterministic Bill of Lading classification and extraction for parties, transport, ports, cargo, and one or many containers
+- reusable candidate groups that retain per-container confidence, evidence, page, corrections, and matches
+- ISO 6346 check-digit validation, logistics normalization, weight consistency, and TEU derivation
+- conservative port, vessel, voyage, party, and shipment matching with fail-closed canonical conflict detection
+- transactional, idempotent B/L commitment linking or creating Shipment, Container, Vessel, Voyage, and Port records
+- canonical Bills of Lading and connected Shipment detail views with source-document provenance
+- a central registry for financial, profitability, volume, utilization, invoice, payment, and concentration metrics
+- backend-authoritative time series, dimensional breakdowns, period comparisons, coverage reporting, and pagination
+- strict selected-currency calculations with explicit mixed-currency exclusions and no implicit FX conversion
+- deterministic management insights for margin, cost, revenue, volume, concentration, payment, receivable, and anomaly signals
+- Overview KPI cards and trends plus an Analytics workspace with date, currency, metric, grain, and canonical dimension filters
+- record-level drill-down from KPIs, insights, and breakdowns to shipment/import or document provenance
+- a seeded 12-month `Baltic Freight Demo SIA` dataset with known management stories and controlled data-quality gaps
 
 ## Repository layout
 
@@ -37,17 +64,19 @@ backend/
   alembic/                 Database migrations
   app/
     api/                   Thin FastAPI routes and identity dependency
-    input_engine/          Parsing, mapping, normalization, validation
-    models/                Canonical SQLAlchemy entities
+    input_engine/          Tabular parsing, mapping, normalization, validation
+    document_engine/       PDF parsing, OCR boundary, classification, extraction, validation
+    models/                Canonical and audit SQLAlchemy entities
     repositories/          Tenant-scoped persistence queries
     schemas/               Pydantic API contracts
     services/              Import, review, and shipment orchestration
+    analytics/             Metric registry, query facts, calculations, comparisons, insights
   tests/                   Focused unit/integration tests
 frontend/
   app/                     Next.js routes and global styling
-  components/              Import wizard, quality dashboard, review workbench, shipments
+  components/              Operational workflows plus Overview and Analytics workspaces
   lib/                     Typed API client and shared contracts
-demo-data/                 Synthetic, deliberately messy input files
+demo-data/                 Synthetic spreadsheet, invoice, and Bill of Lading PDF fixtures
 docs/                      Architecture, data-model, and review-workflow decisions
 ```
 
@@ -127,6 +156,24 @@ Regenerate the synthetic XLSX fixture if needed:
 .venv/bin/python scripts/generate_demo_data.py
 ```
 
+Regenerate the synthetic invoice PDFs:
+
+```bash
+.venv/bin/python scripts/generate_demo_invoices.py
+```
+
+Regenerate the synthetic Bill of Lading PDFs:
+
+```bash
+.venv/bin/python scripts/generate_demo_bills_of_lading.py
+```
+
+Reset and generate the deterministic 12-month analytics company:
+
+```bash
+.venv/bin/python scripts/generate_demo_company.py --reset
+```
+
 ## Demo workflow
 
 1. Open **Data**.
@@ -142,8 +189,40 @@ Regenerate the synthetic XLSX fixture if needed:
 
 All demo records are synthetic.
 
+### Invoice PDF demo
+
+1. Open **Data** and upload `demo-data/invoices/invoice-a-clean.pdf`.
+2. Follow **Review document** to compare the retained PDF with extracted/system values, confidence, page evidence, matches, and issues.
+3. Correct any field if needed, then revalidate. Corrections preserve the system-extracted baseline.
+4. Warnings require explicit human approval; errors block approval and commit.
+5. Approve and commit, then open **Invoices** to see the canonical record and its source-document link.
+6. Upload `invoice-d-arithmetic-mismatch.pdf` to see totals fail closed, or `invoice-e-duplicate.pdf` after invoice A to see duplicate prevention.
+
+Scanned/image-only PDFs currently return the structured `OCR_REQUIRED` failure because no local OCR adapter is configured. No document or extracted text is sent to a third party.
+
+### Bill of Lading PDF demo
+
+1. Open **Data** and upload `demo-data/bills-of-lading/bill-of-lading-b-multiple-containers.pdf`.
+2. Confirm the `BILL_OF_LADING` classification, transport/party fields, and three separate container groups.
+3. Select a container to inspect its source value, normalized value, page evidence, confidence, and canonical match.
+4. Correct any candidate if needed and revalidate. Errors block approval; warnings require explicit approval.
+5. Approve and commit. The transaction creates or links the B/L, shipment, containers, vessel, voyage, and ports together.
+6. Open **Bills of Lading**, then follow the shipment link to see documents, containers, and financial records on one operational record.
+7. Try the invalid-check-digit, weight-mismatch, partial, and duplicate fixtures to see fail-closed review behavior.
+
+### Management analytics demo
+
+1. Run `.venv/bin/python scripts/generate_demo_company.py --reset`, then open **Overview**.
+2. Inspect the eight KPI cards, previous-period comparisons, coverage indicators, financial/volume trends, and ranked deterministic insights.
+3. Open the Riga → Rotterdam margin signal to see rising cost/TEU, near-flat revenue/TEU, and its canonical shipment contributors.
+4. Follow a KPI or insight drill-down to a shipment, source document, or synthetic import row.
+5. Open **Analytics** and change the period, currency, metric, grain, dimension, or operational filters.
+6. Sort a server-calculated breakdown and open a row to reconcile it to the contributing canonical records.
+
+The generated company intentionally includes mixed USD records, incomplete finance coverage, missing TEU/weight, partial/unpaid invoices, seasonal volume, concentration, late payment, and expensive-shipment cases. Coverage and exclusions are therefore part of the demo rather than hidden noise.
+
 ## Development identity shortcut
 
 Demo mode binds every request to the single company configured by `DEMO_COMPANY_SLUG`. An optional `X-Company-ID` header is only accepted when it matches that demo company; it cannot select another tenant. This is deliberately not production authentication. With demo mode disabled, protected endpoints fail closed until a real authentication and company-membership provider is configured.
 
-See [Architecture](docs/ARCHITECTURE.md), [Data model](docs/DATA_MODEL.md), and [Import review](docs/IMPORT_REVIEW.md) for decisions, state transitions, correction semantics, API behavior, and current limitations.
+See [Analytics semantics](docs/ANALYTICS.md), [Architecture](docs/ARCHITECTURE.md), [Data model](docs/DATA_MODEL.md), [Import review](docs/IMPORT_REVIEW.md), [Document engine](docs/DOCUMENT_ENGINE.md), and [Bill of Lading intelligence](docs/BILL_OF_LADING.md) for definitions, decisions, state transitions, correction semantics, API behavior, and current limitations.

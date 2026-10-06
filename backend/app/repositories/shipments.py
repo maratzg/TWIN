@@ -34,6 +34,20 @@ class ShipmentRepository:
             )
         return self.session.scalar(statement.limit(1)) is not None
 
+    def get(self, shipment_id: uuid.UUID) -> Shipment | None:
+        return self.session.scalar(
+            select(Shipment)
+            .where(Shipment.id == shipment_id, Shipment.company_id == self.company_id)
+            .options(
+                selectinload(Shipment.customer),
+                selectinload(Shipment.voyage).selectinload(Voyage.vessel),
+                selectinload(Shipment.origin_port),
+                selectinload(Shipment.destination_port),
+                selectinload(Shipment.containers),
+                selectinload(Shipment.bills_of_lading),
+            )
+        )
+
     def list(self, search: str | None, offset: int, limit: int) -> tuple[list[Shipment], int]:
         filters = [Shipment.company_id == self.company_id]
         if search:

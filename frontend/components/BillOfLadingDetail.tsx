@@ -1,0 +1,17 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
+import type { BillOfLading } from "@/lib/types";
+
+export function BillOfLadingDetail({ billId }: { billId: string }) {
+  const [bill, setBill] = useState<BillOfLading | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => { api.billOfLading<BillOfLading>(billId).then(setBill).catch((reason) => setError(reason instanceof Error ? reason.message : "Could not load Bill of Lading.")); }, [billId]);
+  if (!bill) return <div className="panel emptyState"><strong>{error ?? "Loading Bill of Lading…"}</strong></div>;
+  return <div className="canonicalDetail"><div className="detailTopbar"><Link className="backLink" href="/bills-of-lading">← Bills of Lading</Link><span className="stateLabel committed">Committed</span></div><div className="pageHeading"><div><p className="eyebrow">Canonical Bill of Lading</p><h1>{bill.number}</h1><p>{bill.carrier ?? "Carrier not stated"} · issued {bill.issue_date ?? "date not stated"}</p></div><div className="buttonGroup"><Link className="secondaryButton" href={`/shipments/${bill.shipment_id}`}>Open shipment</Link>{bill.source_document_id && <Link className="primaryButton" href={`/documents/${bill.source_document_id}`}>Review source</Link>}</div></div>
+    <div className="canonicalGrid"><section className="panel"><h2>Parties</h2><dl><dt>Shipper</dt><dd>{bill.shipper ?? "—"}</dd><dt>Consignee</dt><dd>{bill.consignee ?? "—"}</dd><dt>Notify party</dt><dd>{bill.notify_party ?? "—"}</dd></dl></section><section className="panel"><h2>Transport</h2><dl><dt>Vessel / voyage</dt><dd>{bill.vessel ?? "—"} / {bill.voyage ?? "—"}</dd><dt>Route</dt><dd>{bill.port_of_loading ?? "—"} → {bill.port_of_discharge ?? "—"}</dd><dt>Shipment</dt><dd><Link className="rowLink" href={`/shipments/${bill.shipment_id}`}>{bill.shipment_reference ?? bill.shipment_id} →</Link></dd></dl></section><section className="panel"><h2>Cargo</h2><dl><dt>Description</dt><dd>{bill.description_of_goods ?? "—"}</dd><dt>Packages</dt><dd>{bill.total_packages ?? "—"}</dd><dt>Gross weight</dt><dd>{bill.total_gross_weight ? `${bill.total_gross_weight} kg` : "—"}</dd><dt>Measurement</dt><dd>{bill.measurement ? `${bill.measurement} ${bill.measurement_unit ?? ""}` : "—"}</dd></dl></section></div>
+    <section className="panel widePanel containerRegister"><div className="panelHeading"><div><h2>Containers</h2><p>Shipment-scoped occurrences with source-document provenance.</p></div><span className="recordCount">{bill.containers.length} containers</span></div><div className="tableWrap"><table className="dataTable"><thead><tr><th>Container</th><th>Size/type</th><th>Seal</th><th>Packages</th><th>Weight</th><th>TEU</th><th>Provenance</th></tr></thead><tbody>{bill.containers.map((container) => <tr key={container.id}><td><code>{container.container_number}</code></td><td>{container.size_type ?? "—"}</td><td>{container.seal_number ?? "—"}</td><td>{container.package_count ?? "—"} {container.package_type ?? ""}</td><td>{container.gross_weight ? `${container.gross_weight} kg` : "—"}</td><td>{container.teu ?? "—"}</td><td>{container.source_document_id ? <Link className="rowLink" href={`/documents/${container.source_document_id}`}>{container.source_candidate_group ?? "Source"} →</Link> : "Linked occurrence"}</td></tr>)}</tbody></table></div></section>
+  </div>;
+}

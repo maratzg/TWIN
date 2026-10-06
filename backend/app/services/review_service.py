@@ -6,7 +6,15 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Company, ImportCorrection, ImportIssue, ImportJob, ImportRow
+from app.models import (
+    Company,
+    DocumentFieldCandidate,
+    ImportCorrection,
+    ImportIssue,
+    ImportJob,
+    ImportRow,
+    SourceDocument,
+)
 from app.repositories.imports import ImportRepository
 from app.services.import_service import ImportService
 
@@ -159,6 +167,35 @@ class ImportReviewService:
                 ImportJob.created_at >= since,
             )
         ) or 0
+        document_filter = SourceDocument.company_id == self.company_id
+        documents_awaiting_review = self.session.scalar(
+            select(func.count(SourceDocument.id)).where(
+                document_filter,
+                SourceDocument.status == "needs_review",
+            )
+        ) or 0
+        failed_document_processing = self.session.scalar(
+            select(func.count(SourceDocument.id)).where(
+                document_filter,
+                SourceDocument.status == "failed",
+            )
+        ) or 0
+        unresolved_document_fields = self.session.scalar(
+            select(func.count(DocumentFieldCandidate.id))
+            .join(SourceDocument, SourceDocument.id == DocumentFieldCandidate.document_id)
+            .where(
+                document_filter,
+                DocumentFieldCandidate.status.in_(["review", "error"]),
+                SourceDocument.status != "committed",
+            )
+        ) or 0
+        recent_processed_documents = self.session.scalar(
+            select(func.count(SourceDocument.id)).where(
+                document_filter,
+                SourceDocument.status.not_in(["uploaded", "extracting"]),
+                SourceDocument.created_at >= since,
+            )
+        ) or 0
         ready = dispositions.get("ready", 0) + dispositions.get("committed", 0)
         review = dispositions.get("review", 0)
         invalid = dispositions.get("invalid", 0)
@@ -175,6 +212,10 @@ class ImportReviewService:
             "imports_requiring_review": imports_requiring_review,
             "recent_successful_imports": recent_successful,
             "recent_failed_imports": recent_failed,
+            "documents_awaiting_review": documents_awaiting_review,
+            "failed_document_processing": failed_document_processing,
+            "unresolved_document_fields": unresolved_document_fields,
+            "recent_processed_documents": recent_processed_documents,
         }
 
     @staticmethod

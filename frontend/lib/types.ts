@@ -95,6 +95,152 @@ export type DataQualitySummary = {
   imports_requiring_review: number;
   recent_successful_imports: number;
   recent_failed_imports: number;
+  documents_awaiting_review: number;
+  failed_document_processing: number;
+  unresolved_document_fields: number;
+  recent_processed_documents: number;
+};
+
+export type DocumentRecord = {
+  id: string;
+  original_filename: string;
+  content_type: string;
+  size_bytes: number;
+  checksum_sha256: string;
+  status: string;
+  document_type: string;
+  classification_confidence: number;
+  classification_method: string | null;
+  classification_signals: string[];
+  extraction_version: string | null;
+  extraction_method: string | null;
+  page_count: number;
+  field_count: number;
+  review_count: number;
+  error_count: number;
+  approved_at: string | null;
+  approved_by: string | null;
+  committed_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type DocumentSummary = DocumentRecord & {
+  ready_fields: number;
+  review_fields: number;
+  error_fields: number;
+  canonical_invoice_id: string | null;
+  canonical_invoice_number: string | null;
+  canonical_bill_of_lading_id: string | null;
+  canonical_bill_of_lading_number: string | null;
+};
+
+export type DocumentHistoryPage = {
+  items: DocumentSummary[];
+  total: number;
+  page: number;
+  page_size: number;
+  pages: number;
+};
+
+export type DocumentPage = {
+  id: string;
+  page_number: number;
+  text: string;
+  blocks: Record<string, unknown>[];
+  extraction_method: string;
+  char_count: number;
+};
+
+export type DocumentFieldCandidate = {
+  id: string;
+  field_name: string;
+  group_type: "document" | "container";
+  group_index: number;
+  raw_value: string | null;
+  system_normalized_value: unknown;
+  normalized_value: unknown;
+  confidence: number;
+  extraction_method: string;
+  page_number: number | null;
+  evidence: string | null;
+  bounding_box: Record<string, number> | null;
+  status: "ready" | "review" | "error";
+  matched_entity_type: string | null;
+  matched_entity_id: string | null;
+  match_method: string | null;
+  match_confidence: number | null;
+};
+
+export type DocumentIssue = {
+  id: string;
+  field: string | null;
+  severity: "INFO" | "WARNING" | "ERROR";
+  code: string;
+  message: string;
+};
+
+export type DocumentCorrection = {
+  id: string;
+  field_name: string;
+  previous_value: unknown;
+  corrected_value: unknown;
+  reason: string | null;
+  reviewer_reference: string | null;
+  created_at: string;
+};
+
+export type CanonicalInvoiceReference = {
+  id: string;
+  invoice_number: string;
+  direction: string;
+  status: string;
+};
+
+export type CanonicalBillOfLadingReference = {
+  id: string;
+  number: string;
+  shipment_id: string;
+  source_document_id: string | null;
+};
+
+export type DocumentDetail = {
+  document: DocumentRecord;
+  pages: DocumentPage[];
+  candidates: DocumentFieldCandidate[];
+  issues: DocumentIssue[];
+  corrections: DocumentCorrection[];
+  canonical_invoice: CanonicalInvoiceReference | null;
+  canonical_bill_of_lading: CanonicalBillOfLadingReference | null;
+  canonical_fields: string[];
+};
+
+export type Invoice = {
+  id: string;
+  source_document_id: string | null;
+  invoice_number: string;
+  direction: string;
+  invoice_date: string;
+  due_date: string | null;
+  subtotal: string;
+  vat: string;
+  total: string;
+  currency: string;
+  status: string;
+  customer_id: string | null;
+  customer_name: string | null;
+  supplier_id: string | null;
+  supplier_name: string | null;
+  shipment_id: string | null;
+  created_at: string;
+};
+
+export type InvoiceHistoryPage = {
+  items: Invoice[];
+  total: number;
+  page: number;
+  page_size: number;
+  pages: number;
 };
 
 export type ImportRowListItem = {
@@ -184,6 +330,267 @@ export type Shipment = {
 
 export type ShipmentPage = {
   items: Shipment[];
+  total: number;
+  page: number;
+  page_size: number;
+  pages: number;
+};
+
+export type BillOfLadingContainer = {
+  id: string;
+  container_number: string;
+  size_type: string | null;
+  seal_number: string | null;
+  package_count: number | null;
+  package_type: string | null;
+  gross_weight: string | null;
+  teu: string | null;
+  source_document_id: string | null;
+  source_candidate_group: string | null;
+};
+
+export type BillOfLading = {
+  id: string;
+  number: string;
+  source_document_id: string | null;
+  shipment_id: string;
+  shipment_reference: string | null;
+  issue_date: string | null;
+  carrier: string | null;
+  shipper: string | null;
+  shipper_supplier_id: string | null;
+  consignee: string | null;
+  consignee_customer_id: string | null;
+  notify_party: string | null;
+  vessel: string | null;
+  voyage: string | null;
+  port_of_loading: string | null;
+  port_of_discharge: string | null;
+  description_of_goods: string | null;
+  total_packages: number | null;
+  total_gross_weight: string | null;
+  measurement: string | null;
+  measurement_unit: string | null;
+  containers: BillOfLadingContainer[];
+  created_at: string;
+};
+
+export type BillOfLadingPage = {
+  items: BillOfLading[];
+  total: number;
+  page: number;
+  page_size: number;
+  pages: number;
+};
+
+export type ShipmentDetail = Shipment & {
+  documents: { id: string; document_type: string; number: string; source_document_id: string | null }[];
+  containers: {
+    id: string;
+    container_number: string;
+    size_type: string | null;
+    seal_number: string | null;
+    package_count: number | null;
+    package_type: string | null;
+    gross_weight: string | null;
+    teu: string | null;
+    source_document_id: string | null;
+  }[];
+  invoices: {
+    id: string;
+    invoice_number: string;
+    direction: string;
+    total: string;
+    currency: string;
+    source_document_id: string | null;
+  }[];
+};
+
+export type DecimalValue = string | number | null;
+
+export type AnalyticsPeriod = {
+  from_date: string;
+  to_date: string;
+};
+
+export type MetricMetadata = {
+  key: string;
+  display_name: string;
+  description: string;
+  unit: string;
+  calculation: string;
+  supported_dimensions: string[];
+  date_basis: string;
+  aggregation: string;
+  decimals: number;
+};
+
+export type AnalyticsCoverage = {
+  label: string;
+  covered_records: number;
+  eligible_records: number;
+  percent: DecimalValue;
+  excluded_records: number;
+  currency_exclusions: Record<string, number>;
+  warnings: string[];
+};
+
+export type AnalyticsComparison = {
+  current: DecimalValue;
+  previous: DecimalValue;
+  absolute_change: DecimalValue;
+  percentage_change: DecimalValue;
+  change_type: "absolute" | "percentage_points";
+};
+
+export type AnalyticsMetricValue = {
+  metric: MetricMetadata;
+  value: DecimalValue;
+  currency: string | null;
+  coverage: AnalyticsCoverage;
+  comparison: AnalyticsComparison | null;
+  components: Record<string, DecimalValue>;
+};
+
+export type AnalyticsSummary = {
+  period: AnalyticsPeriod;
+  comparison_period: AnalyticsPeriod;
+  currency: string;
+  filters: Record<string, string | null>;
+  metrics: AnalyticsMetricValue[];
+};
+
+export type AnalyticsOption = { id: string; label: string };
+
+export type AnalyticsOptions = {
+  default_period: AnalyticsPeriod;
+  default_currency: string;
+  customers: AnalyticsOption[];
+  routes: AnalyticsOption[];
+  ports: AnalyticsOption[];
+  vessels: AnalyticsOption[];
+  voyages: AnalyticsOption[];
+  currencies: AnalyticsOption[];
+};
+
+export type MetricRegistry = {
+  metrics: MetricMetadata[];
+  time_grains: string[];
+  dimensions: string[];
+};
+
+export type TimeseriesPoint = {
+  period: AnalyticsPeriod;
+  label: string;
+  values: Record<string, DecimalValue>;
+  coverage: Record<string, AnalyticsCoverage>;
+};
+
+export type AnalyticsTimeseries = {
+  period: AnalyticsPeriod;
+  grain: string;
+  currency: string;
+  filters: Record<string, string | null>;
+  metrics: MetricMetadata[];
+  points: TimeseriesPoint[];
+};
+
+export type BreakdownRow = {
+  dimension_id: string;
+  dimension_label: string;
+  values: Record<string, DecimalValue>;
+  comparisons: Record<string, AnalyticsComparison | null>;
+  coverage: Record<string, AnalyticsCoverage>;
+  drilldown: { dimension: string; dimension_id: string };
+};
+
+export type AnalyticsBreakdown = {
+  period: AnalyticsPeriod;
+  comparison_period: AnalyticsPeriod;
+  dimension: string;
+  currency: string;
+  filters: Record<string, string | null>;
+  metrics: MetricMetadata[];
+  rows: BreakdownRow[];
+  total: number;
+  page: number;
+  page_size: number;
+  pages: number;
+};
+
+export type InsightContributor = {
+  metric: string;
+  current_value: DecimalValue;
+  baseline_value: DecimalValue;
+  absolute_change: DecimalValue;
+  percentage_change: DecimalValue;
+  change_type: string;
+};
+
+export type AnalyticsInsight = {
+  id: string;
+  type: string;
+  severity: "info" | "warning" | "critical" | "positive";
+  title: string;
+  entity_type: string;
+  entity_id: string | null;
+  entity_label: string;
+  metric: string;
+  current_value: DecimalValue;
+  baseline_value: DecimalValue;
+  absolute_change: DecimalValue;
+  percentage_change: DecimalValue;
+  change_type: string;
+  contributors: InsightContributor[];
+  period: AnalyticsPeriod;
+  baseline_period: AnalyticsPeriod;
+  evidence: Record<string, unknown>;
+  drilldown: Record<string, string>;
+  rank_score: DecimalValue;
+};
+
+export type AnalyticsInsights = {
+  period: AnalyticsPeriod;
+  baseline_period: AnalyticsPeriod;
+  baseline_window: string;
+  currency: string;
+  filters: Record<string, string | null>;
+  insights: AnalyticsInsight[];
+};
+
+export type DrilldownItem = {
+  record_type: "shipment" | "invoice";
+  record_id: string;
+  label: string;
+  record_date: string;
+  customer: string | null;
+  route: string | null;
+  revenue: DecimalValue;
+  cost: DecimalValue;
+  teu: DecimalValue;
+  gross_weight: DecimalValue;
+  invoice_total: DecimalValue;
+  outstanding: DecimalValue;
+  currency: string | null;
+  shipment_id: string | null;
+  invoice_id: string | null;
+  cost_record_ids: string[];
+  container_ids: string[];
+  source_document_ids: string[];
+  import_job_id: string | null;
+  source_row_number: number | null;
+};
+
+export type AnalyticsDrilldown = {
+  metric: MetricMetadata;
+  period: AnalyticsPeriod;
+  currency: string;
+  filters: Record<string, string | null>;
+  dimension: string | null;
+  dimension_id: string | null;
+  reconciled_value: DecimalValue;
+  coverage: AnalyticsCoverage;
+  items: DrilldownItem[];
   total: number;
   page: number;
   page_size: number;

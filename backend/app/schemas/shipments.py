@@ -31,3 +31,37 @@ class ShipmentPage(BaseModel):
     page: int
     page_size: int
     pages: int
+
+
+class ShipmentDocumentReference(BaseModel):
+    id: uuid.UUID
+    document_type: str
+    number: str
+    source_document_id: uuid.UUID | None
+
+
+class ShipmentContainerDetail(BaseModel):
+    id: uuid.UUID
+    container_number: str
+    size_type: str | None
+    seal_number: str | None
+    package_count: int | None
+    package_type: str | None
+    gross_weight: Decimal | None
+    teu: Decimal | None
+    source_document_id: uuid.UUID | None
+
+
+class ShipmentInvoiceReference(BaseModel):
+    id: uuid.UUID
+    invoice_number: str
+    direction: str
+    total: Decimal
+    currency: str
+    source_document_id: uuid.UUID | None
+
+
+class ShipmentDetail(ShipmentItem):
+    documents: list[ShipmentDocumentReference]
+    containers: list[ShipmentContainerDetail]
+    invoices: list[ShipmentInvoiceReference]

@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { ChangeEvent, DragEvent, useMemo, useState } from "react";
 import { api } from "@/lib/api";
-import type { CommitSummary, ImportAnalysis, MappingItem, MappingResponse, ValidationSummary } from "@/lib/types";
+import type { CommitSummary, DocumentDetail, ImportAnalysis, MappingItem, MappingResponse, ValidationSummary } from "@/lib/types";
 
-type Step = "upload" | "mapping" | "validation" | "complete";
+type Step = "upload" | "mapping" | "validation" | "complete" | "document";
 
 const fieldLabel = (value: string) => value.split("_").map((part) => part[0].toUpperCase() + part.slice(1)).join(" ");
 
@@ -17,16 +17,17 @@ export function ImportWizard() {
   const [mappings, setMappings] = useState<MappingItem[]>([]);
   const [validation, setValidation] = useState<ValidationSummary | null>(null);
   const [result, setResult] = useState<CommitSummary | null>(null);
+  const [documentResult, setDocumentResult] = useState<DocumentDetail | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const progress = useMemo(() => ({ upload: 1, mapping: 2, validation: 3, complete: 4 })[step], [step]);
+  const progress = useMemo(() => ({ upload: 1, mapping: 2, validation: 3, complete: 4, document: 4 })[step], [step]);
 
   function chooseFile(file: File | undefined) {
     if (!file) return;
     const suffix = file.name.split(".").pop()?.toLowerCase();
-    if (suffix !== "csv" && suffix !== "xlsx") {
-      setError("Choose a .csv or .xlsx file.");
+    if (suffix !== "csv" && suffix !== "xlsx" && suffix !== "pdf") {
+      setError("Choose a .csv, .xlsx, or .pdf file.");
       return;
     }
     setSelectedFile(file);
@@ -37,6 +38,11 @@ export function ImportWizard() {
     if (!selectedFile) return;
     setBusy(true); setError(null);
     try {
+      if (selectedFile.name.toLowerCase().endsWith(".pdf")) {
+        setDocumentResult(await api.uploadDocument<DocumentDetail>(selectedFile));
+        setStep("document");
+        return;
+      }
       const analyzed = await api.upload<ImportAnalysis>(selectedFile);
       const mapping = await api.getMapping<MappingResponse>(analyzed.id);
       setAnalysis(analyzed);
@@ -88,7 +94,7 @@ export function ImportWizard() {
 
   function reset() {
     setStep("upload"); setSelectedFile(null); setAnalysis(null); setMappings([]);
-    setValidation(null); setResult(null); setError(null);
+    setValidation(null); setResult(null); setDocumentResult(null); setError(null);
   }
 
   return (
@@ -104,13 +110,13 @@ export function ImportWizard() {
 
       {step === "upload" && (
         <section className="panel uploadPanel">
-          <div className="panelHeading"><div><h2>Import operational data</h2><p>Upload a logistics workbook or delimited file. Nothing is committed until after review and validation.</p></div><span className="secureNote">◈ Auditable pipeline</span></div>
+          <div className="panelHeading"><div><h2>Import operational data or documents</h2><p>Upload a workbook, delimited file, invoice PDF, or Bill of Lading PDF. Nothing is committed until after review and validation.</p></div><span className="secureNote">◈ Auditable pipeline</span></div>
           <label className={selectedFile ? "dropzone selected" : "dropzone"}
             onDragOver={(event: DragEvent) => event.preventDefault()}
             onDrop={(event: DragEvent) => { event.preventDefault(); chooseFile(event.dataTransfer.files[0]); }}>
-            <input type="file" accept=".csv,.xlsx" onChange={(event: ChangeEvent<HTMLInputElement>) => chooseFile(event.target.files?.[0])}/>
+            <input type="file" accept=".csv,.xlsx,.pdf,application/pdf" onChange={(event: ChangeEvent<HTMLInputElement>) => chooseFile(event.target.files?.[0])}/>
             <span className="uploadIcon">↥</span>
-            {selectedFile ? <><strong>{selectedFile.name}</strong><p>{(selectedFile.size / 1024).toFixed(1)} KB · Ready to analyze</p></> : <><strong>Drop a file here, or browse</strong><p>Excel (.xlsx) and CSV up to 20 MB</p></>}
+            {selectedFile ? <><strong>{selectedFile.name}</strong><p>{(selectedFile.size / 1024).toFixed(1)} KB · Ready to analyze</p></> : <><strong>Drop a file here, or browse</strong><p>Invoice/Bill of Lading PDF, Excel (.xlsx), and CSV up to 20 MB</p></>}
           </label>
           <div className="actionRow"><span className="quiet">Source values are retained for traceability.</span><button className="primaryButton" disabled={!selectedFile || busy} onClick={analyze}>{busy ? "Analyzing…" : "Analyze file"}</button></div>
         </section>
@@ -147,6 +153,17 @@ export function ImportWizard() {
 
       {step === "complete" && result && (
         <section className="panel completePanel"><div className="completeIcon">✓</div><span className="pill success">Ready rows committed</span><h2>{result.imported} shipments imported</h2><p>Trusted canonical records are available now. Any unresolved rows remain fail-closed in the review workbench.</p><div className="resultLine"><span>{result.needs_review} require review</span><span>{result.rejected} invalid</span></div><div className="buttonGroup"><button className="secondaryButton" onClick={reset}>Import another file</button><Link className="secondaryButton" href={`/data/imports/${result.import_id}`}>Open review</Link><Link className="primaryButton" href="/shipments">View shipments →</Link></div></section>
+      )}
+
+      {step === "document" && documentResult && (
+        <section className="panel completePanel documentComplete">
+          <div className={documentResult.document.error_count ? "completeIcon documentWarn" : "completeIcon"}>□</div>
+          <span className={`stateLabel ${documentResult.document.status}`}>{documentResult.document.status.replaceAll("_", " ")}</span>
+          <h2>{documentResult.document.document_type === "INVOICE" ? "Invoice extracted" : "Document needs classification"}</h2>
+          <p>{documentResult.document.field_count} fields were captured across {documentResult.document.page_count} page{documentResult.document.page_count === 1 ? "" : "s"}. The original PDF and every system value remain linked for review.</p>
+          <div className="resultLine"><span>{documentResult.document.error_count} errors</span><span>{documentResult.document.review_count} review items</span><span>{Math.round(documentResult.document.classification_confidence * 100)}% classification</span></div>
+          <div className="buttonGroup"><button className="secondaryButton" onClick={reset}>Upload another</button><Link className="primaryButton" href={`/documents/${documentResult.document.id}`}>Review document →</Link></div>
+        </section>
       )}
     </div>
   );

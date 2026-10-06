@@ -203,3 +203,7 @@ class DataQualitySummary(BaseModel):
     imports_requiring_review: int
     recent_successful_imports: int
     recent_failed_imports: int
+    documents_awaiting_review: int
+    failed_document_processing: int
+    unresolved_document_fields: int
+    recent_processed_documents: int

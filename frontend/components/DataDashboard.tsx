@@ -53,6 +53,12 @@ export function DataDashboard() {
           <article className="qualityCard attentionTone"><strong>{quality?.imports_requiring_review ?? 0}</strong><span>Imports need attention</span><small>{quality?.unresolved_issues ?? 0} unresolved rows</small></article>
           <article className="qualityCard successTone"><strong>{quality?.recent_successful_imports ?? 0}</strong><span>Completed recently</span><small>{quality?.recent_failed_imports ?? 0} failed in 30 days</small></article>
         </div>
+        <div className="documentQualityGrid">
+          <article className="qualityCard warningTone"><strong>{quality?.documents_awaiting_review ?? 0}</strong><span>Documents need review</span><small>Awaiting a human decision</small></article>
+          <article className="qualityCard attentionTone"><strong>{quality?.unresolved_document_fields ?? 0}</strong><span>Unresolved fields</span><small>Low-confidence or invalid candidates</small></article>
+          <article className="qualityCard errorTone"><strong>{quality?.failed_document_processing ?? 0}</strong><span>Processing failures</span><small>Fail-closed documents</small></article>
+          <article className="qualityCard successTone"><strong>{quality?.recent_processed_documents ?? 0}</strong><span>Documents processed</span><small>Last 30 days</small></article>
+        </div>
       </section>
 
       <section className="panel widePanel historyPanel">

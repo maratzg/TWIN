@@ -12,6 +12,8 @@ class Company(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     name: Mapped[str] = mapped_column(String(200))
     slug: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     default_currency: Mapped[str] = mapped_column(String(3), default="EUR")
+    registration_number: Mapped[str | None] = mapped_column(String(100))
+    vat_number: Mapped[str | None] = mapped_column(String(100))
 
 
 class Customer(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -40,4 +42,3 @@ class Supplier(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     vat_number: Mapped[str | None] = mapped_column(String(100))
     country_code: Mapped[str | None] = mapped_column(String(2))
     currency: Mapped[str | None] = mapped_column(String(3))
-

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { ShipmentPage } from "@/lib/types";
@@ -33,7 +34,7 @@ export function ShipmentsTable() {
       <div className="toolbar"><form className="searchBox" onSubmit={submit}><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search reference, customer, B/L, container…"/><button>Search</button></form><span className="recordCount">{data?.total ?? 0} records</span></div>
       {loading ? <div className="emptyState"><strong>Loading canonical records…</strong></div> : data && data.items.length ? <>
         <div className="tableWrap"><table className="dataTable shipmentsTable"><thead><tr><th>Reference</th><th>Customer</th><th>B/L</th><th>Container</th><th>Vessel / voyage</th><th>POL → POD</th><th>ETD / ETA</th><th>Weight / TEU</th><th>Revenue</th><th>Status</th></tr></thead><tbody>{data.items.map((shipment) => <tr key={shipment.id}>
-          <td><strong>{shipment.reference ?? empty}</strong></td><td>{shipment.customer ?? empty}</td><td>{shipment.bill_of_lading ?? empty}</td><td><code>{shipment.container ?? empty}</code></td>
+          <td>{shipment.reference ? <Link className="rowLink" href={`/shipments/${shipment.id}`}>{shipment.reference} →</Link> : empty}</td><td>{shipment.customer ?? empty}</td><td>{shipment.bill_of_lading ?? empty}</td><td><code>{shipment.container ?? empty}</code></td>
           <td>{shipment.vessel ?? empty}<small>{shipment.voyage ?? ""}</small></td><td>{shipment.port_of_loading ?? empty}<small>→ {shipment.port_of_discharge ?? empty}</small></td>
           <td>{shipment.etd ?? empty}<small>{shipment.eta ?? empty}</small></td><td>{shipment.gross_weight ? `${shipment.gross_weight} kg` : empty}<small>{shipment.teu ? `${shipment.teu} TEU` : ""}</small></td>
           <td>{shipment.revenue ? `${shipment.revenue} ${shipment.currency ?? ""}` : empty}</td><td><span className="pill neutral">{shipment.status ?? empty}</span></td>
@@ -43,4 +44,3 @@ export function ShipmentsTable() {
     </section>
   );
 }
-

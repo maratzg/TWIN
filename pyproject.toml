@@ -4,13 +4,14 @@ build-backend = "hatchling.build"
 
 [project]
 name = "logistics-intelligence-platform"
-version = "0.1.0"
-description = "Tenant-aware logistics intelligence platform foundation"
+version = "0.4.0"
+description = "Tenant-aware logistics and document intelligence platform"
 requires-python = ">=3.11"
 dependencies = [
   "alembic>=1.14,<2",
   "fastapi>=0.115,<1",
   "openpyxl>=3.1,<4",
+  "pypdf>=6.10,<7",
   "psycopg[binary]>=3.2,<4",
   "pydantic-settings>=2.7,<3",
   "python-multipart>=0.0.20,<1",
@@ -23,6 +24,7 @@ dev = [
   "httpx>=0.28,<1",
   "pytest>=8.3,<9",
   "pytest-cov>=6,<7",
+  "reportlab>=4.4,<5",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -32,4 +34,3 @@ packages = ["backend/app"]
 testpaths = ["backend/tests"]
 pythonpath = ["backend"]
 addopts = "-q"
-

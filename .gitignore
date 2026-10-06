@@ -9,4 +9,19 @@ __pycache__/
 node_modules/
 .next/
 coverage/
+document-storage/
+tmp/
+
+.env.*
+!.env.example
+*.sqlite
+# Generated presentation build artifacts
+
+presentation/.build/
+
+presentation/.pdf-check/
+
+presentation/.pdf-check-v2/
+
+presentation/rendered/
 

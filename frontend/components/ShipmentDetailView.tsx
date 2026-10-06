@@ -1,0 +1,19 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
+import type { ShipmentDetail } from "@/lib/types";
+
+export function ShipmentDetailView({ shipmentId }: { shipmentId: string }) {
+  const [shipment, setShipment] = useState<ShipmentDetail | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => { api.shipment<ShipmentDetail>(shipmentId).then(setShipment).catch((reason) => setError(reason instanceof Error ? reason.message : "Could not load shipment.")); }, [shipmentId]);
+  if (!shipment) return <div className="panel emptyState"><strong>{error ?? "Loading shipment…"}</strong></div>;
+  return <div className="canonicalDetail"><div className="detailTopbar"><Link className="backLink" href="/shipments">← Shipments</Link><span className={`stateLabel ${shipment.status ?? "open"}`}>{shipment.status ?? "Open"}</span></div><div className="pageHeading"><div><p className="eyebrow">Connected operational record</p><h1>{shipment.reference ?? "Shipment"}</h1><p>{shipment.customer ?? "Customer not linked"} · {shipment.port_of_loading ?? "—"} → {shipment.port_of_discharge ?? "—"}</p></div></div>
+    <div className="canonicalGrid"><section className="panel"><h2>Route</h2><dl><dt>Vessel / voyage</dt><dd>{shipment.vessel ?? "—"} / {shipment.voyage ?? "—"}</dd><dt>Booking</dt><dd>{shipment.booking_reference ?? "—"}</dd><dt>ETD / ETA</dt><dd>{shipment.etd ?? "—"} / {shipment.eta ?? "—"}</dd></dl></section><section className="panel"><h2>Operations</h2><dl><dt>Gross weight</dt><dd>{shipment.gross_weight ? `${shipment.gross_weight} kg` : "—"}</dd><dt>Total TEU</dt><dd>{shipment.teu ?? "—"}</dd><dt>Containers</dt><dd>{shipment.containers.length}</dd></dl></section><section className="panel"><h2>Financial</h2><dl><dt>Revenue</dt><dd>{shipment.revenue ? `${shipment.revenue} ${shipment.currency ?? ""}` : "—"}</dd><dt>Invoices</dt><dd>{shipment.invoices.length}</dd></dl></section></div>
+    <section className="panel relationshipPanel"><div className="panelHeading"><div><h2>Documents</h2><p>Canonical records linked back to retained source PDFs.</p></div></div>{shipment.documents.length ? shipment.documents.map((document) => <div className="relationshipRow" key={document.id}><div><strong>{document.document_type.replaceAll("_", " ")}</strong><span>{document.number}</span></div><div><Link className="rowLink" href={`/bills-of-lading/${document.id}`}>Canonical record →</Link>{document.source_document_id && <Link className="rowLink" href={`/documents/${document.source_document_id}`}>Source PDF →</Link>}</div></div>) : <p className="emptyAudit">No document relationships.</p>}</section>
+    <section className="panel relationshipPanel"><div className="panelHeading"><div><h2>Containers</h2><p>Occurrences belong to this shipment; physical numbers may reappear on later shipments.</p></div></div>{shipment.containers.map((container) => <div className="relationshipRow" key={container.id}><div><strong><code>{container.container_number}</code></strong><span>{container.size_type ?? "Unknown type"} · {container.seal_number ?? "No seal"}</span></div><div><span>{container.gross_weight ? `${container.gross_weight} kg` : "—"}</span><span>{container.teu ? `${container.teu} TEU` : "—"}</span></div></div>)}</section>
+    <section className="panel relationshipPanel"><div className="panelHeading"><div><h2>Invoices</h2><p>Financial records already linked to this shipment.</p></div></div>{shipment.invoices.length ? shipment.invoices.map((invoice) => <div className="relationshipRow" key={invoice.id}><div><strong>{invoice.invoice_number}</strong><span>{invoice.direction}</span></div><div><span>{invoice.total} {invoice.currency}</span>{invoice.source_document_id && <Link className="rowLink" href={`/documents/${invoice.source_document_id}`}>Source PDF →</Link>}</div></div>) : <p className="emptyAudit">No linked invoices.</p>}</section>
+  </div>;
+}

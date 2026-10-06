@@ -2,7 +2,7 @@ import uuid
 from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import Date, ForeignKey, Numeric, String, UniqueConstraint
+from sqlalchemy import Date, ForeignKey, Index, Integer, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -49,6 +49,16 @@ class Shipment(UUIDPrimaryKeyMixin, TimestampMixin, Base):
             "booking_reference",
             name="uq_shipments_company_booking_reference",
         ),
+        Index("ix_shipments_company_etd", "company_id", "etd"),
+        Index("ix_shipments_company_customer_etd", "company_id", "customer_id", "etd"),
+        Index(
+            "ix_shipments_company_route_etd",
+            "company_id",
+            "origin_port_id",
+            "destination_port_id",
+            "etd",
+        ),
+        Index("ix_shipments_company_voyage_etd", "company_id", "voyage_id", "etd"),
     )
 
     company_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("companies.id"), index=True)
@@ -82,8 +92,13 @@ class Container(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     company_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("companies.id"), index=True)
     shipment_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("shipments.id"), index=True)
+    source_document_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("documents.id"), index=True)
+    source_candidate_group: Mapped[str | None] = mapped_column(String(100))
     container_number: Mapped[str] = mapped_column(String(20), index=True)
     size_type: Mapped[str | None] = mapped_column(String(20))
+    seal_number: Mapped[str | None] = mapped_column(String(100))
+    package_count: Mapped[int | None] = mapped_column(Integer)
+    package_type: Mapped[str | None] = mapped_column(String(100))
     teu: Mapped[Decimal | None] = mapped_column(Numeric(8, 2))
     gross_weight: Mapped[Decimal | None] = mapped_column(Numeric(18, 3))
     status: Mapped[str | None] = mapped_column(String(50))
@@ -97,6 +112,11 @@ class BillOfLading(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     company_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("companies.id"), index=True)
     shipment_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("shipments.id"), index=True)
+    source_document_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("documents.id"), unique=True, index=True
+    )
+    shipper_supplier_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("suppliers.id"), index=True)
+    consignee_customer_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("customers.id"), index=True)
     number: Mapped[str] = mapped_column(String(200), index=True)
     issue_date: Mapped[date | None] = mapped_column(Date)
     carrier: Mapped[str | None] = mapped_column(String(200))
@@ -104,5 +124,12 @@ class BillOfLading(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     consignee: Mapped[str | None] = mapped_column(String(300))
     notify_party: Mapped[str | None] = mapped_column(String(300))
     references: Mapped[str | None] = mapped_column(String(500))
+    description_of_goods: Mapped[str | None] = mapped_column(Text)
+    total_packages: Mapped[int | None] = mapped_column(Integer)
+    total_gross_weight: Mapped[Decimal | None] = mapped_column(Numeric(18, 3))
+    measurement: Mapped[Decimal | None] = mapped_column(Numeric(18, 3))
+    measurement_unit: Mapped[str | None] = mapped_column(String(20))
 
     shipment: Mapped[Shipment] = relationship(back_populates="bills_of_lading")
+    shipper_supplier = relationship("Supplier", foreign_keys=[shipper_supplier_id])
+    consignee_customer = relationship("Customer", foreign_keys=[consignee_customer_id])
